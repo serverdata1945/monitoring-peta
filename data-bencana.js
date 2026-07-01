@@ -23,5 +23,13 @@ var laporan_array = [
         "latitude": -8.067300,
         "longitude": 113.623400,
         "keterangan": "Laporan longsor skala kecil di akses jalan desa, tim sedang menuju lokasi."
+    },
+    {
+        "id": "4",
+        "kecamatan": "Kec. rambipuji",
+        "status": "Verifikasi",
+        "latitude": -8.067400,
+        "longitude": 113.623200,
+        "keterangan": "Laporan longsor skala besar."
     }
 ];
