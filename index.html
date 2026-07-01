@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Monitoring BPBD - Online</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Segoe UI', sans-serif; }
+        .sidebar { height: 100vh; background-color: #ffffff; border-right: 1px solid #dee2e6; position: fixed; top: 0; left: 0; width: 240px; padding-top: 20px; }
+        .main-content { margin-left: 240px; padding: 20px; }
+        #map { height: 500px; width: 100%; border-radius: 8px; border: 1px solid #dee2e6; }
+        .card-counter { border-left: 4px solid; }
+        
+        /* Custom Warna Marker Leaflet */
+        .marker-mendesak { filter: hue-rotate(140deg) brightness(0.9); }
+        .marker-verifikasi { filter: hue-rotate(200deg) saturate(3); }
+        .marker-selesai { filter: hue-rotate(320deg); }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar d-flex flex-column p-3">
+        <div class="text-center mb-3">
+            <img src="assets/logo-bpbd.png" alt="Logo BPBD" style="width: 60px; height: auto;" class="mb-2">
+            <h5 class="text-danger fw-bold m-0">BPBD Jember</h5>
+            <small class="text-muted">Sistem Monitoring Online</small>
+        </div>
+        <hr>
+        <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item">
+                <a href="#" class="nav-link active bg-danger"><i class="fa-solid fa-chart-pie me-2"></i> Dashboard</a>
+            </li>
+        </ul>
+        <hr>
+        <div class="text-muted small text-center">Versi GitHub Pages</div>
+    </div>
+
+    <div class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="fw-bold m-0">Peta Monitoring Pengkajian Kebutuhan Pasca Bencana</h4>
+            <span class="badge bg-primary p-2">Status: Static Online</span>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card card-counter border-primary shadow-sm p-3">
+                    <small class="text-muted fw-bold">Kebutuhan Mendesak</small>
+                    <h3 class="fw-bold text-primary" id="stat-mendesak">0</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-counter border-warning shadow-sm p-3">
+                    <small class="text-muted fw-bold">Verifikasi Lapangan</small>
+                    <h3 class="fw-bold text-warning" id="stat-verifikasi">0</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-counter border-success shadow-sm p-3">
+                    <small class="text-muted fw-bold">Bantuan Tersalurkan</small>
+                    <h3 class="fw-bold text-success" id="stat-selesai">0</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-counter border-info shadow-sm p-3">
+                    <small class="text-muted fw-bold">Total Laporan</small>
+                    <h3 class="fw-bold text-info" id="stat-total">0</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-8 mb-4">
+                <div class="card shadow-sm p-3">
+                    <h6 class="fw-bold mb-3"><i class="fa-solid fa-map"></i> Sebaran Titik Lokasi</h6>
+                    <div id="map"></div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 mb-4">
+                <div class="card shadow-sm p-3" style="height: 565px; overflow-y: auto;">
+                    <h6 class="fw-bold mb-3"><i class="fa-solid fa-list"></i> Laporan Terbaru</h6>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Lokasi</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabel-laporan">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="data-bencana.js"></script>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // 1. INISIALISASI PETA JEMBER
+        var map = L.map('map').setView([-8.184486, 113.668074], 11);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 2. VARIABEL HITUNG STATISTIK
+        var mendesak = 0, verifikasi = 0, selesai = 0;
+        var tabelBody = document.getElementById('tabel-laporan');
+
+        // 3. PERULANGAN JAVASCRIPT UNTUK MEMBACA ARRAY DARI data-bencana.js
+        laporan_array.forEach(function(row) {
+            
+            // Hitung statistik otomatis berdasarkan status
+            if (row.status === 'Mendesak') { mendesak++; }
+            else if (row.status === 'Verifikasi') { verifikasi++; }
+            else if (row.status === 'Selesai') { selesai++; }
+
+            // Tentukan warna marker pin peta
+            var warna_class = 'marker-selesai';
+            var badge_color = 'bg-success';
+            
+            if (row.status === 'Mendesak') {
+                warna_class = 'marker-mendesak';
+                badge_color = 'bg-danger';
+            } else if (row.status === 'Verifikasi') {
+                warna_class = 'marker-verifikasi';
+                badge_color = 'bg-warning text-dark';
+            }
+
+            // Tambahkan Marker ke Peta
+            var marker = L.marker([row.latitude, row.longitude]).addTo(map)
+                .bindPopup("<b>" + row.kecamatan + "</b><br>Status: <b>" + row.status + "</b><br>" + row.keterangan);
+            
+            if(marker._icon) {
+                marker._icon.classList.add(warna_class);
+            }
+
+            // Tambahkan Baris Data ke Tabel HTML
+            var tr = document.createElement('tr');
+            tr.innerHTML = "<td><small>" + row.kecamatan + "</small></td>" +
+                           "<td><span class='badge " + badge_color + "'>" + row.status + "</span></td>";
+            tabelBody.appendChild(tr);
+        });
+
+        // 4. TAMPILKAN HASIL STATISTIK KE KARTU COUNTER
+        document.getElementById('stat-mendesak').innerText = mendesak;
+        document.getElementById('stat-verifikasi').innerText = verifikasi;
+        document.getElementById('stat-selesai').innerText = selesai;
+        document.getElementById('stat-total').innerText = laporan_array.length;
+
+        // 5. LEGENDA PETA
+        var legend = L.control({ position: 'bottomright' });
+        legend.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'info legend');
+            div.style.backgroundColor = 'white'; div.style.padding = '10px'; div.style.borderRadius = '5px';
+            div.style.boxShadow = '0 0 15px rgba(0,0,0,0.2)'; div.style.fontSize = '12px'; div.style.lineHeight = '20px';
+            div.innerHTML = '<strong>Status Urgensi</strong><br>' +
+                '<i style="background: #ff5252; width: 12px; height: 12px; display: inline-block; margin-right: 5px; border-radius: 50%;"></i> Mendesak<br>' +
+                '<i style="background: #ffa726; width: 12px; height: 12px; display: inline-block; margin-right: 5px; border-radius: 50%;"></i> Verifikasi<br>' +
+                '<i style="background: #2ec4b6; width: 12px; height: 12px; display: inline-block; margin-right: 5px; border-radius: 50%;"></i> Selesai';
+            return div;
+        };
+        legend.addTo(map);
+    </script>
+</body>
+</html>
